@@ -17,6 +17,7 @@ type Pool interface {
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
 	Close()
+	OpTimeout() time.Duration
 }
 
 type ConnectionPool struct {
@@ -43,7 +44,7 @@ func NewConnectionPool(ctx context.Context, cfg Config, log *logger.Logger) (*Co
 
 	return &ConnectionPool{
 		Pool:    pool,
-		timeout: time.Duration(cfg.Timeout) * time.Second,
+		timeout: cfg.Timeout,
 	}, nil
 }
 

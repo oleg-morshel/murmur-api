@@ -36,6 +36,13 @@ migrate-create:
 		--dir /migrations \
 		-seq "$(seq)"
 
+
+migrate-force:
+	@docker compose run --rm murmur-postgres-migrate \
+		-path /migrations \
+		-database "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@murmur-postgres:5432/${POSTGRES_DB}?sslmode=disable" \
+		force $(version)
+
 migrate-up:
 	make migrate-action action=up
 
