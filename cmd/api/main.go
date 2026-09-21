@@ -10,6 +10,11 @@ import (
 
 	"github.com/oleg-morshel/murmur-api/internal/config"
 	core_postgres_pool "github.com/oleg-morshel/murmur-api/internal/core/repository/postgres/pool"
+	core_http_middleware "github.com/oleg-morshel/murmur-api/internal/core/transport/http/middleware"
+	core_http_server "github.com/oleg-morshel/murmur-api/internal/core/transport/http/server"
+	auth_postgres "github.com/oleg-morshel/murmur-api/internal/features/auth/repository/postgres"
+	auth_service "github.com/oleg-morshel/murmur-api/internal/features/auth/service"
+	auth_transport_http "github.com/oleg-morshel/murmur-api/internal/features/auth/transport/http"
 	"github.com/oleg-morshel/murmur-api/pkg/logger"
 )
 
@@ -39,8 +44,41 @@ func main() {
 	}
 	defer pool.Close()
 
-	log.Info("murmur api started")
+	log.Info("pool timeout", slog.Duration("timeout", pool.OpTimeout()))
 
-	<-ctx.Done()
-	log.Info("shutting down gracefully...")
+	log.Debug("initializing feature", slog.String("feature", "auth"))
+	userRepository := auth_postgres.NewAuthRepository(pool)
+	tokenRepository := auth_postgres.NewTokenRepository(pool)
+	authService := auth_service.NewService(
+		userRepository,
+		tokenRepository,
+		cfg.Auth.JWTSecret,
+		cfg.Auth.AccessTTL,
+		cfg.Auth.RefreshTTL,
+	)
+	authTransportHttp := auth_transport_http.NewAuthHTTPHandler(authService)
+
+	log.Debug("initializing HTTP server")
+
+	httpServer := core_http_server.NewHTTPServer(
+		core_http_server.NewConfigMust(),
+		log,
+		core_http_middleware.RequestID(),
+		core_http_middleware.Logger(log),
+		core_http_middleware.Panic(),
+		core_http_middleware.Trace(),
+	)
+
+	apiVersionRouter := core_http_server.NewAPIVersionRouter(
+		core_http_server.ApiVersion1,
+		auth_transport_http.AuthMiddleware(authService),
+	)
+	apiVersionRouter.RegisterRoutes(authTransportHttp.Routes()...)
+	httpServer.RegisterApiRouters(apiVersionRouter)
+
+	log.Info(">>> murmur api STARTED")
+	if err := httpServer.Run(ctx); err != nil {
+		log.Error("HTTP server run error", slog.Any("error", err))
+	}
+	log.Info(">>> murmur api STOPPED")
 }
