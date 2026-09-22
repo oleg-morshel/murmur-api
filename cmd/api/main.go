@@ -15,6 +15,9 @@ import (
 	auth_postgres "github.com/oleg-morshel/murmur-api/internal/features/auth/repository/postgres"
 	auth_service "github.com/oleg-morshel/murmur-api/internal/features/auth/service"
 	auth_transport_http "github.com/oleg-morshel/murmur-api/internal/features/auth/transport/http"
+	posts_postgres "github.com/oleg-morshel/murmur-api/internal/features/posts/repository/postgres"
+	posts_service "github.com/oleg-morshel/murmur-api/internal/features/posts/service"
+	posts_transport_http "github.com/oleg-morshel/murmur-api/internal/features/posts/transport/http"
 	"github.com/oleg-morshel/murmur-api/pkg/logger"
 )
 
@@ -47,16 +50,21 @@ func main() {
 	log.Info("pool timeout", slog.Duration("timeout", pool.OpTimeout()))
 
 	log.Debug("initializing feature", slog.String("feature", "auth"))
-	userRepository := auth_postgres.NewAuthRepository(pool)
+	authRepository := auth_postgres.NewAuthRepository(pool)
 	tokenRepository := auth_postgres.NewTokenRepository(pool)
 	authService := auth_service.NewService(
-		userRepository,
+		authRepository,
 		tokenRepository,
 		cfg.Auth.JWTSecret,
 		cfg.Auth.AccessTTL,
 		cfg.Auth.RefreshTTL,
 	)
 	authTransportHttp := auth_transport_http.NewAuthHTTPHandler(authService)
+
+	log.Debug("initializing feature", slog.String("feature", "posts"))
+	postRepository := posts_postgres.NewPostRepository(pool)
+	postService := posts_service.NewPostService(postRepository)
+	postsTransportHttp := posts_transport_http.NewPostsHTTPHandler(postService)
 
 	log.Debug("initializing HTTP server")
 
@@ -74,6 +82,8 @@ func main() {
 		auth_transport_http.AuthMiddleware(authService),
 	)
 	apiVersionRouter.RegisterRoutes(authTransportHttp.Routes()...)
+	apiVersionRouter.RegisterRoutes(postsTransportHttp.Routes()...)
+
 	httpServer.RegisterApiRouters(apiVersionRouter)
 
 	log.Info(">>> murmur api STARTED")
