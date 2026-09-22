@@ -36,7 +36,7 @@ func (h *AuthHTTPHandler) GetMe(rw http.ResponseWriter, r *http.Request) {
 
 	userID, ok := UserIDFromContext(ctx)
 	if !ok {
-		responseHandler.ErrorResponse(core_errors.ErrUnauthorized, "unauthorized")
+		responseHandler.ErrorResponse(core_errors.ErrUnauthorized, "")
 		return
 	}
 
