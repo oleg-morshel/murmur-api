@@ -3,8 +3,10 @@ package posts_service
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	core_errors "github.com/oleg-morshel/murmur-api/internal/core/errors"
+	"github.com/oleg-morshel/murmur-api/pkg/logger"
 )
 
 func (s *PostService) Delete(ctx context.Context, postID, userID int64) error {
@@ -14,8 +16,20 @@ func (s *PostService) Delete(ctx context.Context, postID, userID int64) error {
 	}
 
 	if post.AuthorID != userID {
-		return fmt.Errorf("posts.Delete: %w", core_errors.ErrForbidden)
+		return core_errors.ErrForbidden
 	}
 
-	return s.postRepo.Delete(ctx, postID)
+	if err := s.postRepo.Delete(ctx, postID); err != nil {
+		return fmt.Errorf("posts.Delete: %w", err)
+	}
+
+	log := logger.FromContext(ctx)
+	if err := s.cache.Delete(ctx, fmt.Sprintf("post:%d", postID)); err != nil {
+		log.Warn("posts.Delete: cache invalidate error", slog.Any("error", err))
+	}
+	if err := s.cache.DeleteByPattern(ctx, "feed:latest:*"); err != nil {
+		log.Warn("posts.Delete: cache invalidate error", slog.Any("error", err))
+	}
+
+	return nil
 }

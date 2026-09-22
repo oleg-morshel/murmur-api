@@ -9,4 +9,5 @@ var (
 	ErrNotFound        = errors.New("not found")
 	ErrConflict        = errors.New("conflict")
 	ErrInvalidArgument = errors.New("invalid argument")
+	ErrRateLimited     = errors.New("rate limited")
 )
