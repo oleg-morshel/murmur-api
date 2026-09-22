@@ -7,14 +7,17 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/oleg-morshel/murmur-api/internal/config"
+	core_redis "github.com/oleg-morshel/murmur-api/internal/core/cache/redis"
 	core_postgres_pool "github.com/oleg-morshel/murmur-api/internal/core/repository/postgres/pool"
 	core_http_middleware "github.com/oleg-morshel/murmur-api/internal/core/transport/http/middleware"
 	core_http_server "github.com/oleg-morshel/murmur-api/internal/core/transport/http/server"
 	auth_postgres "github.com/oleg-morshel/murmur-api/internal/features/auth/repository/postgres"
 	auth_service "github.com/oleg-morshel/murmur-api/internal/features/auth/service"
 	auth_transport_http "github.com/oleg-morshel/murmur-api/internal/features/auth/transport/http"
+	posts_cache "github.com/oleg-morshel/murmur-api/internal/features/posts/cache"
 	posts_postgres "github.com/oleg-morshel/murmur-api/internal/features/posts/repository/postgres"
 	posts_service "github.com/oleg-morshel/murmur-api/internal/features/posts/service"
 	posts_transport_http "github.com/oleg-morshel/murmur-api/internal/features/posts/transport/http"
@@ -49,6 +52,13 @@ func main() {
 
 	log.Info("pool timeout", slog.Duration("timeout", pool.OpTimeout()))
 
+	redisClient, err := core_redis.NewClient(ctx, core_redis.NewConfigMust(), log)
+	if err != nil {
+		log.Error("failed to init redis", slog.Any("error", err))
+		os.Exit(1)
+	}
+	defer redisClient.Close()
+
 	log.Debug("initializing feature", slog.String("feature", "auth"))
 	authRepository := auth_postgres.NewAuthRepository(pool)
 	tokenRepository := auth_postgres.NewTokenRepository(pool)
@@ -62,8 +72,11 @@ func main() {
 	authTransportHttp := auth_transport_http.NewAuthHTTPHandler(authService)
 
 	log.Debug("initializing feature", slog.String("feature", "posts"))
+
 	postRepository := posts_postgres.NewPostRepository(pool)
-	postService := posts_service.NewPostService(postRepository)
+	postCache := posts_cache.NewRedisCache(redisClient.RDB())
+	rateLimiter := posts_cache.NewRateLimiter(redisClient.RDB(), 10, time.Minute)
+	postService := posts_service.NewPostService(postRepository, postCache, rateLimiter)
 	postsTransportHttp := posts_transport_http.NewPostsHTTPHandler(postService)
 
 	log.Debug("initializing HTTP server")

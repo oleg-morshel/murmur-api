@@ -2,6 +2,7 @@ package posts_service
 
 import (
 	"context"
+	"time"
 
 	"github.com/oleg-morshel/murmur-api/internal/core/domain"
 )
@@ -14,10 +15,27 @@ type PostRepository interface {
 	Delete(ctx context.Context, id int64) error
 }
 
-type PostService struct {
-	postRepo PostRepository
+type PostCache interface {
+	Get(ctx context.Context, key string) ([]byte, error)
+	Set(ctx context.Context, key string, value []byte, ttl time.Duration) error
+	Delete(ctx context.Context, keys ...string) error
+	DeleteByPattern(ctx context.Context, pattern string) error
 }
 
-func NewPostService(postRepo PostRepository) *PostService {
-	return &PostService{postRepo: postRepo}
+type RateLimiter interface {
+	Allow(ctx context.Context, userID int64) (bool, error)
+}
+
+type PostService struct {
+	postRepo    PostRepository
+	cache       PostCache
+	rateLimiter RateLimiter
+}
+
+func NewPostService(postRepo PostRepository, cache PostCache, rateLimiter RateLimiter) *PostService {
+	return &PostService{
+		postRepo:    postRepo,
+		cache:       cache,
+		rateLimiter: rateLimiter,
+	}
 }

@@ -4,10 +4,10 @@ export
 export PROJECT_ROOT=${shell pwd}
 
 env-up:
-	@docker compose up -d murmur-postgres
+	@docker compose up -d murmur-postgres murmur-redis
 
 env-down:
-	@docker compose down murmur-postgres
+	@docker compose down murmur-postgres murmur-redis
 
 env-cleanup:
 	@read -p "Do you plan to clean environments volumes files? Dangerous to lose data. [y:N]: " ans; \
