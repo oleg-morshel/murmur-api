@@ -17,6 +17,9 @@ import (
 	auth_postgres "github.com/oleg-morshel/murmur-api/internal/features/auth/repository/postgres"
 	auth_service "github.com/oleg-morshel/murmur-api/internal/features/auth/service"
 	auth_transport_http "github.com/oleg-morshel/murmur-api/internal/features/auth/transport/http"
+	polls_postgres "github.com/oleg-morshel/murmur-api/internal/features/polls/repository/postgres"
+	polls_service "github.com/oleg-morshel/murmur-api/internal/features/polls/service"
+	polls_transport_http "github.com/oleg-morshel/murmur-api/internal/features/polls/transport/http"
 	posts_cache "github.com/oleg-morshel/murmur-api/internal/features/posts/cache"
 	posts_postgres "github.com/oleg-morshel/murmur-api/internal/features/posts/repository/postgres"
 	posts_service "github.com/oleg-morshel/murmur-api/internal/features/posts/service"
@@ -71,12 +74,18 @@ func main() {
 	)
 	authTransportHttp := auth_transport_http.NewAuthHTTPHandler(authService)
 
+	log.Debug("initializing feature", slog.String("feature", "polls"))
+
+	pollRepository := polls_postgres.NewPollRepository(pool)
+	pollService := polls_service.NewPollService(pollRepository)
+	pollsTransportHttp := polls_transport_http.NewPollsHTTPHandler(pollService)
+
 	log.Debug("initializing feature", slog.String("feature", "posts"))
 
 	postRepository := posts_postgres.NewPostRepository(pool)
 	postCache := posts_cache.NewRedisCache(redisClient.RDB())
 	rateLimiter := posts_cache.NewRateLimiter(redisClient.RDB(), 10, time.Minute)
-	postService := posts_service.NewPostService(postRepository, postCache, rateLimiter)
+	postService := posts_service.NewPostService(postRepository, postCache, rateLimiter, pollService)
 	postsTransportHttp := posts_transport_http.NewPostsHTTPHandler(postService)
 
 	log.Debug("initializing HTTP server")
@@ -96,6 +105,7 @@ func main() {
 	)
 	apiVersionRouter.RegisterRoutes(authTransportHttp.Routes()...)
 	apiVersionRouter.RegisterRoutes(postsTransportHttp.Routes()...)
+	apiVersionRouter.RegisterRoutes(pollsTransportHttp.Routes()...)
 
 	httpServer.RegisterApiRouters(apiVersionRouter)
 

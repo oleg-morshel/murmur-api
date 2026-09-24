@@ -22,20 +22,26 @@ type PostCache interface {
 	DeleteByPattern(ctx context.Context, pattern string) error
 }
 
+type PollProvider interface {
+	GetByPostID(ctx context.Context, postID int64) (*domain.Poll, error)
+}
+
 type RateLimiter interface {
 	Allow(ctx context.Context, userID int64) (bool, error)
 }
 
 type PostService struct {
-	postRepo    PostRepository
-	cache       PostCache
-	rateLimiter RateLimiter
+	postRepo     PostRepository
+	cache        PostCache
+	rateLimiter  RateLimiter
+	pollProvider PollProvider
 }
 
-func NewPostService(postRepo PostRepository, cache PostCache, rateLimiter RateLimiter) *PostService {
+func NewPostService(postRepo PostRepository, cache PostCache, rateLimiter RateLimiter, pollProvider PollProvider) *PostService {
 	return &PostService{
-		postRepo:    postRepo,
-		cache:       cache,
-		rateLimiter: rateLimiter,
+		postRepo:     postRepo,
+		cache:        cache,
+		rateLimiter:  rateLimiter,
+		pollProvider: pollProvider,
 	}
 }
