@@ -11,6 +11,7 @@ import (
 
 	"github.com/oleg-morshel/murmur-api/internal/config"
 	core_redis "github.com/oleg-morshel/murmur-api/internal/core/cache/redis"
+	core_nats "github.com/oleg-morshel/murmur-api/internal/core/queue/nats"
 	core_postgres_pool "github.com/oleg-morshel/murmur-api/internal/core/repository/postgres/pool"
 	core_http_middleware "github.com/oleg-morshel/murmur-api/internal/core/transport/http/middleware"
 	core_http_server "github.com/oleg-morshel/murmur-api/internal/core/transport/http/server"
@@ -74,10 +75,17 @@ func main() {
 	)
 	authTransportHttp := auth_transport_http.NewAuthHTTPHandler(authService)
 
+	natsClient, err := core_nats.NewClient(ctx, core_nats.NewConfigMust(), log)
+	if err != nil {
+		log.Error("failed to init nats", slog.Any("error", err))
+		os.Exit(1)
+	}
+	defer natsClient.Close()
+
 	log.Debug("initializing feature", slog.String("feature", "polls"))
 
 	pollRepository := polls_postgres.NewPollRepository(pool)
-	pollService := polls_service.NewPollService(pollRepository)
+	pollService := polls_service.NewPollService(pollRepository, natsClient)
 	pollsTransportHttp := polls_transport_http.NewPollsHTTPHandler(pollService)
 
 	log.Debug("initializing feature", slog.String("feature", "posts"))
@@ -85,7 +93,7 @@ func main() {
 	postRepository := posts_postgres.NewPostRepository(pool)
 	postCache := posts_cache.NewRedisCache(redisClient.RDB())
 	rateLimiter := posts_cache.NewRateLimiter(redisClient.RDB(), 10, time.Minute)
-	postService := posts_service.NewPostService(postRepository, postCache, rateLimiter, pollService)
+	postService := posts_service.NewPostService(postRepository, postCache, rateLimiter, pollService, natsClient)
 	postsTransportHttp := posts_transport_http.NewPostsHTTPHandler(postService)
 
 	log.Debug("initializing HTTP server")

@@ -13,10 +13,18 @@ type PollRepository interface {
 	HasVoted(ctx context.Context, pollID, userID int64) (bool, error)
 }
 
-type PollService struct {
-	pollRepo PollRepository
+type EventPublisher interface {
+	Publish(subject string, data []byte) error
 }
 
-func NewPollService(pollRepo PollRepository) *PollService {
-	return &PollService{pollRepo: pollRepo}
+type PollService struct {
+	pollRepo       PollRepository
+	eventPublisher EventPublisher
+}
+
+func NewPollService(pollRepo PollRepository, eventPublisher EventPublisher) *PollService {
+	return &PollService{
+		pollRepo:       pollRepo,
+		eventPublisher: eventPublisher,
+	}
 }

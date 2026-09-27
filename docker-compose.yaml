@@ -29,6 +29,12 @@ services:
       murmur-postgres:
         condition: service_healthy
 
+  murmur-nats:
+    image: nats:2-alpine
+    container_name: murmur-nats
+    ports:
+      - "4222:4222"
+
   port-forwarder:
     image: alpine/socat:1.8.1.3
     container_name: murmur-port-forwarder

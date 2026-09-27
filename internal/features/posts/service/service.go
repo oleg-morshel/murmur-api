@@ -30,18 +30,24 @@ type RateLimiter interface {
 	Allow(ctx context.Context, userID int64) (bool, error)
 }
 
-type PostService struct {
-	postRepo     PostRepository
-	cache        PostCache
-	rateLimiter  RateLimiter
-	pollProvider PollProvider
+type EventPublisher interface {
+	Publish(subject string, data []byte) error
 }
 
-func NewPostService(postRepo PostRepository, cache PostCache, rateLimiter RateLimiter, pollProvider PollProvider) *PostService {
+type PostService struct {
+	postRepo       PostRepository
+	cache          PostCache
+	rateLimiter    RateLimiter
+	pollProvider   PollProvider
+	eventPublisher EventPublisher
+}
+
+func NewPostService(postRepo PostRepository, cache PostCache, rateLimiter RateLimiter, pollProvider PollProvider, eventPublisher EventPublisher) *PostService {
 	return &PostService{
-		postRepo:     postRepo,
-		cache:        cache,
-		rateLimiter:  rateLimiter,
-		pollProvider: pollProvider,
+		postRepo:       postRepo,
+		cache:          cache,
+		rateLimiter:    rateLimiter,
+		pollProvider:   pollProvider,
+		eventPublisher: eventPublisher,
 	}
 }

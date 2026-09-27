@@ -4,15 +4,15 @@ export
 export PROJECT_ROOT=${shell pwd}
 
 env-up:
-	@docker compose up -d murmur-postgres murmur-redis
+	@docker compose up -d murmur-postgres murmur-redis murmur-nats
 
 env-down:
-	@docker compose down murmur-postgres murmur-redis
+	@docker compose down murmur-postgres murmur-redis murmur-nats
 
 env-cleanup:
 	@read -p "Do you plan to clean environments volumes files? Dangerous to lose data. [y:N]: " ans; \
 	if [ "$$ans" = "y" ]; then \
-	  docker compose down murmur-postgres port-forwarder && \
+	  docker compose down murmur-postgres port-forwarder murmur-nats && \
 	  rm -rf out/pgdata && \
 	  echo "Environments files are cleaned"; \
 	else \
@@ -64,3 +64,9 @@ murmur-run:
 	export POSTGRES_HOST=localhost && \
 	go mod tidy && \
 	go run cmd/api/main.go
+
+murmur-run-notification:
+	@export LOGGER_FOLDER=${PROJECT_ROOT}/out/logs && \
+	export POSTGRES_HOST=localhost && \
+	go mod tidy && \
+	go run cmd/notification/main.go
