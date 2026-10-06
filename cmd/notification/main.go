@@ -3,15 +3,19 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/oleg-morshel/murmur-api/internal/config"
 	core_events "github.com/oleg-morshel/murmur-api/internal/core/events"
 	core_nats "github.com/oleg-morshel/murmur-api/internal/core/queue/nats"
+	"github.com/oleg-morshel/murmur-api/internal/ws"
 	"github.com/oleg-morshel/murmur-api/pkg/logger"
 )
 
@@ -40,6 +44,9 @@ func main() {
 	}
 	defer natsClient.Close()
 
+	hub := ws.NewHub(log)
+	go hub.Run()
+
 	handlePostCreated := func(data []byte) {
 		var event core_events.PostCreatedEvent
 		if err := json.Unmarshal(data, &event); err != nil {
@@ -51,6 +58,8 @@ func main() {
 			slog.Int64("author_id", event.AuthorID),
 			slog.Time("timestamp", event.Timestamp),
 		)
+
+		hub.Broadcast(data)
 	}
 
 	handlePostDeleted := func(data []byte) {
@@ -63,6 +72,8 @@ func main() {
 			slog.Int64("post_id", event.PostID),
 			slog.Time("timestamp", event.Timestamp),
 		)
+
+		hub.Broadcast(data)
 	}
 
 	handlePollVoted := func(data []byte) {
@@ -77,6 +88,8 @@ func main() {
 			slog.Int64("user_id", event.UserID),
 			slog.Time("timestamp", event.Timestamp),
 		)
+
+		hub.Broadcast(data)
 	}
 
 	subPostCreated, err := natsClient.Subscribe(core_events.SubjectPostCreated, handlePostCreated)
@@ -100,9 +113,31 @@ func main() {
 	}
 	defer subPollVoted.Unsubscribe()
 
+	mux := http.NewServeMux()
+	mux.HandleFunc("/ws", ws.ServeWS(hub, log))
+
+	wsServer := &http.Server{
+		Addr:    ":8081",
+		Handler: mux,
+	}
+
+	go func() {
+		log.Info("ws server listening", slog.String("addr", wsServer.Addr))
+		if err := wsServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Error("ws server failed", slog.Any("error", err))
+			stop()
+		}
+	}()
+
 	log.Info(">>> notification service STARTED")
 
 	<-ctx.Done()
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := wsServer.Shutdown(shutdownCtx); err != nil {
+		log.Error("ws server shutdown failed", slog.Any("error", err))
+	}
 
 	log.Info(">>> notification service STOPPED")
 }
