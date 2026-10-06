@@ -11,6 +11,7 @@ type Config struct {
 	Env    string `envconfig:"ENV" default:"local"`
 	Logger Logger
 	Auth   AuthConfig
+	GRPC   GRPCConfig
 }
 
 type Logger struct {
@@ -22,6 +23,11 @@ type AuthConfig struct {
 	JWTSecret  string        `envconfig:"JWT_SECRET" required:"true"`
 	AccessTTL  time.Duration `envconfig:"ACCESS_TTL" default:"15m"`
 	RefreshTTL time.Duration `envconfig:"REFRESH_TTL" default:"720h"`
+}
+
+type GRPCConfig struct {
+	Addr   string `envconfig:"GRPC_ADDR" default:":9090"`
+	Target string `envconfig:"GRPC_TARGET" default:"localhost:9090"`
 }
 
 func MustLoad() *Config {
