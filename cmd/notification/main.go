@@ -15,9 +15,18 @@ import (
 	"github.com/oleg-morshel/murmur-api/internal/config"
 	core_events "github.com/oleg-morshel/murmur-api/internal/core/events"
 	core_nats "github.com/oleg-morshel/murmur-api/internal/core/queue/nats"
+	"github.com/oleg-morshel/murmur-api/internal/grpcclient"
 	"github.com/oleg-morshel/murmur-api/internal/ws"
 	"github.com/oleg-morshel/murmur-api/pkg/logger"
 )
+
+type postCreatedMessage struct {
+	Type           string    `json:"type"`
+	PostID         int64     `json:"post_id"`
+	AuthorID       int64     `json:"author_id"`
+	AuthorUsername string    `json:"author_username,omitempty"`
+	Timestamp      time.Time `json:"timestamp"`
+}
 
 func main() {
 	cfg := config.MustLoad()
@@ -47,6 +56,13 @@ func main() {
 	hub := ws.NewHub(log)
 	go hub.Run()
 
+	userClient, err := grpcclient.NewUserClient(cfg.GRPC.Target, []byte(cfg.Auth.JWTSecret))
+	if err != nil {
+		log.Error("failed to init grpc client", slog.Any("error", err))
+		os.Exit(1)
+	}
+	defer userClient.Close()
+
 	handlePostCreated := func(data []byte) {
 		var event core_events.PostCreatedEvent
 		if err := json.Unmarshal(data, &event); err != nil {
@@ -59,7 +75,27 @@ func main() {
 			slog.Time("timestamp", event.Timestamp),
 		)
 
-		hub.Broadcast(data)
+		username, err := userClient.GetUsername(ctx, event.AuthorID)
+		if err != nil {
+			log.Warn("notification: failed to get author via grpc",
+				slog.Int64("author_id", event.AuthorID),
+				slog.Any("error", err),
+			)
+		}
+
+		msg, err := json.Marshal(postCreatedMessage{
+			Type:           "post.created",
+			PostID:         event.PostID,
+			AuthorID:       event.AuthorID,
+			AuthorUsername: username,
+			Timestamp:      event.Timestamp,
+		})
+		if err != nil {
+			log.Error("notification: failed to marshal ws message", slog.Any("error", err))
+			return
+		}
+
+		hub.Broadcast(msg)
 	}
 
 	handlePostDeleted := func(data []byte) {

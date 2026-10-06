@@ -70,3 +70,11 @@ murmur-run-notification:
 	export POSTGRES_HOST=localhost && \
 	go mod tidy && \
 	go run cmd/notification/main.go
+
+.PHONY: proto
+proto:
+	@mkdir -p proto/boardpb
+	@protoc \
+		--go_out=. --go_opt=module=github.com/oleg-morshel/murmur-api \
+		--go-grpc_out=. --go-grpc_opt=module=github.com/oleg-morshel/murmur-api \
+		proto/board.proto

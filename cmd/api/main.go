@@ -25,6 +25,7 @@ import (
 	posts_postgres "github.com/oleg-morshel/murmur-api/internal/features/posts/repository/postgres"
 	posts_service "github.com/oleg-morshel/murmur-api/internal/features/posts/service"
 	posts_transport_http "github.com/oleg-morshel/murmur-api/internal/features/posts/transport/http"
+	"github.com/oleg-morshel/murmur-api/internal/grpcserver"
 	"github.com/oleg-morshel/murmur-api/pkg/logger"
 )
 
@@ -96,6 +97,16 @@ func main() {
 	postService := posts_service.NewPostService(postRepository, postCache, rateLimiter, pollService, natsClient)
 	postsTransportHttp := posts_transport_http.NewPostsHTTPHandler(postService)
 
+	log.Debug("initializing gRPC server")
+
+	grpcSrv := grpcserver.New(authRepository, authService, log)
+	go func() {
+		if err := grpcSrv.Serve(cfg.GRPC.Addr); err != nil {
+			log.Error("gRPC server run error", slog.Any("error", err))
+			stop()
+		}
+	}()
+
 	log.Debug("initializing HTTP server")
 
 	httpServer := core_http_server.NewHTTPServer(
@@ -121,5 +132,7 @@ func main() {
 	if err := httpServer.Run(ctx); err != nil {
 		log.Error("HTTP server run error", slog.Any("error", err))
 	}
+	grpcSrv.GracefulStop()
+
 	log.Info(">>> murmur api STOPPED")
 }
