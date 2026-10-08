@@ -124,7 +124,6 @@ func TestAuthRepository_Create_DuplicateEmail(t *testing.T) {
 		t.Fatalf("first Create: %v", err)
 	}
 
-	// Тот же email, но другой username: конфликт должен быть именно по email.
 	second := newUser()
 	second.Email = first.Email
 

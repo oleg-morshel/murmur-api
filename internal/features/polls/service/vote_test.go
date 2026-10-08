@@ -113,12 +113,10 @@ func TestPollService_Vote(t *testing.T) {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			// Голос передан в репозиторий с правильными полями.
 			if gotVote.PollID != pollID || gotVote.OptionID != optionID || gotVote.UserID != userID {
 				t.Errorf("vote = %+v, want poll %d option %d user %d", gotVote, pollID, optionID, userID)
 			}
 
-			// Событие ушло в нужный subject и содержит данные голоса.
 			if publishedSubject != core_events.SubjectPollVoted {
 				t.Errorf("subject = %q, want %q", publishedSubject, core_events.SubjectPollVoted)
 			}

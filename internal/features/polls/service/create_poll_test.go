@@ -68,7 +68,6 @@ func TestPollService_CreatePoll(t *testing.T) {
 				t.Errorf("poll = %+v, want %+v", poll, created)
 			}
 
-			// Опции из строк превращены в domain.PollOption в том же порядке.
 			if gotPoll.PostID != postID || gotPoll.Question != question {
 				t.Errorf("poll passed to repo = %+v", gotPoll)
 			}
