@@ -23,9 +23,17 @@ import (
 type postCreatedMessage struct {
 	Type           string    `json:"type"`
 	PostID         int64     `json:"post_id"`
-	AuthorID       int64     `json:"author_id"`
+	AuthorID       *int64    `json:"author_id,omitempty"`
 	AuthorUsername string    `json:"author_username,omitempty"`
+	Anonymous      bool      `json:"anonymous"`
 	Timestamp      time.Time `json:"timestamp"`
+}
+
+type pollVotedMessage struct {
+	Type      string    `json:"type"`
+	PollID    int64     `json:"poll_id"`
+	OptionID  int64     `json:"option_id"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 func main() {
@@ -75,21 +83,27 @@ func main() {
 			slog.Time("timestamp", event.Timestamp),
 		)
 
-		username, err := userClient.GetUsername(ctx, event.AuthorID)
-		if err != nil {
-			log.Warn("notification: failed to get author via grpc",
-				slog.Int64("author_id", event.AuthorID),
-				slog.Any("error", err),
-			)
+		msgData := postCreatedMessage{
+			Type:      "post.created",
+			PostID:    event.PostID,
+			Anonymous: event.Anonymous,
+			Timestamp: event.Timestamp,
 		}
 
-		msg, err := json.Marshal(postCreatedMessage{
-			Type:           "post.created",
-			PostID:         event.PostID,
-			AuthorID:       event.AuthorID,
-			AuthorUsername: username,
-			Timestamp:      event.Timestamp,
-		})
+		if !event.Anonymous {
+			msgData.AuthorID = &event.AuthorID
+
+			username, err := userClient.GetUsername(ctx, event.AuthorID)
+			if err != nil {
+				log.Warn("notification: failed to get author via grpc",
+					slog.Int64("author_id", event.AuthorID),
+					slog.Any("error", err),
+				)
+			}
+			msgData.AuthorUsername = username
+		}
+
+		msg, err := json.Marshal(msgData)
 		if err != nil {
 			log.Error("notification: failed to marshal ws message", slog.Any("error", err))
 			return
@@ -125,7 +139,18 @@ func main() {
 			slog.Time("timestamp", event.Timestamp),
 		)
 
-		hub.Broadcast(data)
+		msg, err := json.Marshal(pollVotedMessage{
+			Type:      "poll.voted",
+			PollID:    event.PollID,
+			OptionID:  event.OptionID,
+			Timestamp: event.Timestamp,
+		})
+		if err != nil {
+			log.Error("notification: failed to marshal ws message", slog.Any("error", err))
+			return
+		}
+
+		hub.Broadcast(msg)
 	}
 
 	subPostCreated, err := natsClient.Subscribe(core_events.SubjectPostCreated, handlePostCreated)

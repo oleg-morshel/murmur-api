@@ -12,6 +12,7 @@ type PostCreatedEvent struct {
 	Type      string    `json:"type"`
 	PostID    int64     `json:"post_id"`
 	AuthorID  int64     `json:"author_id"`
+	Anonymous bool      `json:"anonymous"`
 	Timestamp time.Time `json:"timestamp"`
 }
 

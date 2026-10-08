@@ -43,8 +43,10 @@ func (s *PostService) Create(ctx context.Context, authorID int64, content string
 		Type:      core_events.SubjectPostCreated,
 		PostID:    postID,
 		AuthorID:  authorID,
+		Anonymous: anonymous,
 		Timestamp: time.Now(),
 	}
+
 	if data, err := json.Marshal(event); err != nil {
 		log.Warn("posts.Create: event marshal error", slog.Any("error", err))
 	} else if err := s.eventPublisher.Publish(core_events.SubjectPostCreated, data); err != nil {
