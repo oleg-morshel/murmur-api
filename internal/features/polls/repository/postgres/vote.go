@@ -13,7 +13,7 @@ func (r *PollRepository) Vote(ctx context.Context, vote *domain.PollVote) error 
 	if err != nil {
 		return fmt.Errorf("PollRepository.Vote: begin tx: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	var exists bool
 	err = tx.QueryRow(ctx,

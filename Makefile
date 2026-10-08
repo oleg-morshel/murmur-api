@@ -90,3 +90,7 @@ test-integration:
 test-cover:
 	go test -tags=integration -coverprofile=coverage.out ./...
 	go tool cover -func=coverage.out
+
+.PHONY: lint
+lint:
+	golangci-lint run ./...

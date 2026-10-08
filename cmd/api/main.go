@@ -62,7 +62,7 @@ func main() {
 		log.Error("failed to init redis", slog.Any("error", err))
 		os.Exit(1)
 	}
-	defer redisClient.Close()
+	defer closeLogged(log, "redis client", redisClient.Close)
 
 	log.Debug("initializing feature", slog.String("feature", "auth"))
 	authRepository := auth_postgres.NewAuthRepository(pool)
@@ -135,4 +135,10 @@ func main() {
 	grpcSrv.GracefulStop()
 
 	log.Info(">>> murmur api STOPPED")
+}
+
+func closeLogged(log *logger.Logger, name string, closeFn func() error) {
+	if err := closeFn(); err != nil {
+		log.Warn("failed to close resource", slog.String("resource", name), slog.Any("error", err))
+	}
 }

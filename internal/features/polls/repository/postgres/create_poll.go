@@ -12,7 +12,7 @@ func (r *PollRepository) CreatePoll(ctx context.Context, poll *domain.Poll) (int
 	if err != nil {
 		return 0, fmt.Errorf("PollRepository.CreatePoll: begin tx: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	var pollID int64
 	err = tx.QueryRow(ctx,
