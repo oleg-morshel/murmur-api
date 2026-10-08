@@ -78,3 +78,15 @@ proto:
 		--go_out=. --go_opt=module=github.com/oleg-morshel/murmur-api \
 		--go-grpc_out=. --go-grpc_opt=module=github.com/oleg-morshel/murmur-api \
 		proto/board.proto
+
+.PHONY: test test-integration test-cover
+
+test:
+	go test ./...
+
+test-integration:
+	go test -tags=integration ./...
+
+test-cover:
+	go test -tags=integration -coverprofile=coverage.out ./...
+	go tool cover -func=coverage.out

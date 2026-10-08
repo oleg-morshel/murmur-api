@@ -7,3 +7,4 @@ pgdata/
 # Editor/IDE
 .idea/
 .vscode/
+coverage.out
