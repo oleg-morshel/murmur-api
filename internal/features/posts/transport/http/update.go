@@ -16,6 +16,22 @@ type UpdatePostRequest struct {
 	Anonymous bool   `json:"anonymous"`
 }
 
+// Update godoc
+// @Summary      Update a post
+// @Description  Updates a post. Only the author can do this.
+// @Tags         posts
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id       path      int                true  "Post ID"
+// @Param        request  body      UpdatePostRequest  true  "New post data"
+// @Success      200      {object}  PostResponse
+// @Failure      400      {object}  core_http_response.ErrorBody
+// @Failure      401      {object}  core_http_response.ErrorBody
+// @Failure      403      {object}  core_http_response.ErrorBody  "Not the author"
+// @Failure      404      {object}  core_http_response.ErrorBody
+// @Failure      500      {object}  core_http_response.ErrorBody
+// @Router       /posts/{id} [put]
 func (h *PostsHTTPHandler) Update(rw http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := logger.FromContext(ctx)

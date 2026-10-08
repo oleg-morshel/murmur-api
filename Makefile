@@ -90,3 +90,11 @@ test-integration:
 test-cover:
 	go test -tags=integration -coverprofile=coverage.out ./...
 	go tool cover -func=coverage.out
+
+.PHONY: lint
+lint:
+	golangci-lint run ./...
+
+.PHONY: swagger
+swagger:
+	swag init -g cmd/api/main.go -o docs --parseInternal

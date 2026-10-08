@@ -29,6 +29,17 @@ func userResponseFromDomain(u *domain.User) UserResponse {
 	}
 }
 
+// GetMe godoc
+// @Summary      Current user
+// @Description  Returns the profile of the authenticated user.
+// @Tags         auth
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {object}  UserResponse
+// @Failure      401  {object}  core_http_response.ErrorBody
+// @Failure      404  {object}  core_http_response.ErrorBody
+// @Failure      500  {object}  core_http_response.ErrorBody
+// @Router       /auth/me [get]
 func (h *AuthHTTPHandler) GetMe(rw http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := logger.FromContext(ctx)

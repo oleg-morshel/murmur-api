@@ -15,6 +15,20 @@ type CreatePostRequest struct {
 	Anonymous bool   `json:"anonymous"`
 }
 
+// Create godoc
+// @Summary      Create a post
+// @Description  Creates a post on behalf of the authenticated user. If anonymous is true, the author is hidden in responses.
+// @Tags         posts
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        request  body      CreatePostRequest  true  "Post data"
+// @Success      201      {object}  PostResponse
+// @Failure      400      {object}  core_http_response.ErrorBody
+// @Failure      401      {object}  core_http_response.ErrorBody
+// @Failure      429      {object}  core_http_response.ErrorBody  "Rate limit exceeded"
+// @Failure      500      {object}  core_http_response.ErrorBody
+// @Router       /posts [post]
 func (h *PostsHTTPHandler) Create(rw http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := logger.FromContext(ctx)

@@ -15,6 +15,22 @@ type VoteRequest struct {
 	OptionID int64 `json:"option_id" validate:"required"`
 }
 
+// Vote godoc
+// @Summary      Vote in a poll
+// @Description  Casts the authenticated user's vote for the given option. One vote per user per poll.
+// @Tags         polls
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id       path  int          true  "Poll ID"
+// @Param        request  body  VoteRequest  true  "Chosen option"
+// @Success      204
+// @Failure      400  {object}  core_http_response.ErrorBody
+// @Failure      401  {object}  core_http_response.ErrorBody
+// @Failure      404  {object}  core_http_response.ErrorBody
+// @Failure      409  {object}  core_http_response.ErrorBody  "Already voted"
+// @Failure      500  {object}  core_http_response.ErrorBody
+// @Router       /polls/{id}/vote [post]
 func (h *PollsHTTPHandler) Vote(rw http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := logger.FromContext(ctx)

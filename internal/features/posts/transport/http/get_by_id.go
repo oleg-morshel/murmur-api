@@ -8,6 +8,17 @@ import (
 	"github.com/oleg-morshel/murmur-api/pkg/logger"
 )
 
+// GetByID godoc
+// @Summary      Get a post
+// @Description  Returns a single post by ID, including its poll if present. Public endpoint.
+// @Tags         posts
+// @Produce      json
+// @Param        id   path      int  true  "Post ID"
+// @Success      200  {object}  PostResponse
+// @Failure      400  {object}  core_http_response.ErrorBody
+// @Failure      404  {object}  core_http_response.ErrorBody
+// @Failure      500  {object}  core_http_response.ErrorBody
+// @Router       /posts/{id} [get]
 func (h *PostsHTTPHandler) GetByID(rw http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := logger.FromContext(ctx)

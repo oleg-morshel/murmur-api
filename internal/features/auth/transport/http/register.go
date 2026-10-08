@@ -16,6 +16,18 @@ type RegisterRequest struct {
 	Password string `json:"password" validate:"required,min=8,max=72"`
 }
 
+// Register godoc
+// @Summary      Register a new user
+// @Description  Creates an account and returns an access/refresh token pair.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request  body      RegisterRequest  true  "Registration data"
+// @Success      201      {object}  auth_service.TokenPair
+// @Failure      400      {object}  core_http_response.ErrorBody
+// @Failure      409      {object}  core_http_response.ErrorBody  "User already exists"
+// @Failure      500      {object}  core_http_response.ErrorBody
+// @Router       /auth/register [post]
 func (h *AuthHTTPHandler) Register(rw http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := logger.FromContext(ctx)

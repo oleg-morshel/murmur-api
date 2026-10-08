@@ -61,7 +61,7 @@ func main() {
 		log.Error("failed to init grpc client", slog.Any("error", err))
 		os.Exit(1)
 	}
-	defer userClient.Close()
+	defer closeLogged(log, "grpc user client", userClient.Close)
 
 	handlePostCreated := func(data []byte) {
 		var event core_events.PostCreatedEvent
@@ -133,21 +133,21 @@ func main() {
 		log.Error("failed to subscribe", slog.String("subject", core_events.SubjectPostCreated), slog.Any("error", err))
 		os.Exit(1)
 	}
-	defer subPostCreated.Unsubscribe()
+	defer closeLogged(log, "subscription post.created", subPostCreated.Unsubscribe)
 
 	subPostDeleted, err := natsClient.Subscribe(core_events.SubjectPostDeleted, handlePostDeleted)
 	if err != nil {
 		log.Error("failed to subscribe", slog.String("subject", core_events.SubjectPostDeleted), slog.Any("error", err))
 		os.Exit(1)
 	}
-	defer subPostDeleted.Unsubscribe()
+	defer closeLogged(log, "subscription post.deleted", subPostDeleted.Unsubscribe)
 
 	subPollVoted, err := natsClient.Subscribe(core_events.SubjectPollVoted, handlePollVoted)
 	if err != nil {
 		log.Error("failed to subscribe", slog.String("subject", core_events.SubjectPollVoted), slog.Any("error", err))
 		os.Exit(1)
 	}
-	defer subPollVoted.Unsubscribe()
+	defer closeLogged(log, "subscription poll.voted", subPollVoted.Unsubscribe)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws", ws.ServeWS(hub, log))
@@ -176,4 +176,10 @@ func main() {
 	}
 
 	log.Info(">>> notification service STOPPED")
+}
+
+func closeLogged(log *logger.Logger, name string, closeFn func() error) {
+	if err := closeFn(); err != nil {
+		log.Warn("failed to close resource", slog.String("resource", name), slog.Any("error", err))
+	}
 }
