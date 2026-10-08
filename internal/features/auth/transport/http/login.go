@@ -16,6 +16,18 @@ type LoginRequest struct {
 	Password string `json:"password" validate:"required,min=8,max=72"`
 }
 
+// Login godoc
+// @Summary      Log in
+// @Description  Exchanges email and password for an access/refresh token pair.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request  body      LoginRequest  true  "Credentials"
+// @Success      200      {object}  auth_service.TokenPair
+// @Failure      400      {object}  core_http_response.ErrorBody
+// @Failure      401      {object}  core_http_response.ErrorBody  "Invalid email or password"
+// @Failure      500      {object}  core_http_response.ErrorBody
+// @Router       /auth/login [post]
 func (h *AuthHTTPHandler) Login(rw http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := logger.FromContext(ctx)

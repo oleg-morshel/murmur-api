@@ -8,6 +8,17 @@ import (
 	"github.com/oleg-morshel/murmur-api/pkg/logger"
 )
 
+// List godoc
+// @Summary      List posts
+// @Description  Returns posts with pagination. Public endpoint.
+// @Tags         posts
+// @Produce      json
+// @Param        limit   query     int  false  "Page size"  default(20)
+// @Param        offset  query     int  false  "Offset"     default(0)
+// @Success      200     {array}   PostResponse
+// @Failure      400     {object}  core_http_response.ErrorBody
+// @Failure      500     {object}  core_http_response.ErrorBody
+// @Router       /posts [get]
 func (h *PostsHTTPHandler) List(rw http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := logger.FromContext(ctx)

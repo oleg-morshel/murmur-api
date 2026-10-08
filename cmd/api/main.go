@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/oleg-morshel/murmur-api/docs"
 	"github.com/oleg-morshel/murmur-api/internal/config"
 	core_redis "github.com/oleg-morshel/murmur-api/internal/core/cache/redis"
 	core_nats "github.com/oleg-morshel/murmur-api/internal/core/queue/nats"
@@ -27,8 +28,20 @@ import (
 	posts_transport_http "github.com/oleg-morshel/murmur-api/internal/features/posts/transport/http"
 	"github.com/oleg-morshel/murmur-api/internal/grpcserver"
 	"github.com/oleg-morshel/murmur-api/pkg/logger"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
+// @title           Murmur API
+// @version         1.0
+// @description     Anonymous message board REST API: auth, posts, polls. Real-time notifications are delivered via a separate WebSocket service.
+
+// @host      localhost:5050
+// @BasePath  /api/v1
+
+// @securityDefinitions.apikey  BearerAuth
+// @in                          header
+// @name                        Authorization
+// @description                 Format: "Bearer {access_token}"
 func main() {
 	cfg := config.MustLoad()
 
@@ -127,6 +140,7 @@ func main() {
 	apiVersionRouter.RegisterRoutes(pollsTransportHttp.Routes()...)
 
 	httpServer.RegisterApiRouters(apiVersionRouter)
+	httpServer.RegisterHandler("/swagger/", httpSwagger.WrapHandler)
 
 	log.Info(">>> murmur api STARTED")
 	if err := httpServer.Run(ctx); err != nil {

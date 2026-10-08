@@ -10,6 +10,19 @@ import (
 	"github.com/oleg-morshel/murmur-api/pkg/logger"
 )
 
+// Delete godoc
+// @Summary      Delete a post
+// @Description  Deletes a post. Only the author can do this.
+// @Tags         posts
+// @Security     BearerAuth
+// @Param        id  path  int  true  "Post ID"
+// @Success      204
+// @Failure      400  {object}  core_http_response.ErrorBody
+// @Failure      401  {object}  core_http_response.ErrorBody
+// @Failure      403  {object}  core_http_response.ErrorBody  "Not the author"
+// @Failure      404  {object}  core_http_response.ErrorBody
+// @Failure      500  {object}  core_http_response.ErrorBody
+// @Router       /posts/{id} [delete]
 func (h *PostsHTTPHandler) Delete(rw http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := logger.FromContext(ctx)

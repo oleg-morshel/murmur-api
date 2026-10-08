@@ -14,6 +14,22 @@ type CreatePollRequest struct {
 	Options  []string `json:"options" validate:"required,min=2,max=10,dive,required,min=1,max=200"`
 }
 
+// CreatePoll godoc
+// @Summary      Create a poll for a post
+// @Description  Attaches a poll (2–10 options) to an existing post.
+// @Tags         polls
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id       path      int                true  "Post ID"
+// @Param        request  body      CreatePollRequest  true  "Poll data"
+// @Success      201      {object}  PollResponse
+// @Failure      400      {object}  core_http_response.ErrorBody
+// @Failure      401      {object}  core_http_response.ErrorBody
+// @Failure      404      {object}  core_http_response.ErrorBody
+// @Failure      409      {object}  core_http_response.ErrorBody  "Post already has a poll"
+// @Failure      500      {object}  core_http_response.ErrorBody
+// @Router       /posts/{id}/poll [post]
 func (h *PollsHTTPHandler) CreatePoll(rw http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	log := logger.FromContext(ctx)

@@ -94,3 +94,7 @@ test-cover:
 .PHONY: lint
 lint:
 	golangci-lint run ./...
+
+.PHONY: swagger
+swagger:
+	swag init -g cmd/api/main.go -o docs --parseInternal
