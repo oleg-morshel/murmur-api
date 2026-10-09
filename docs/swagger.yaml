@@ -1,0 +1,624 @@
+basePath: /api/v1
+definitions:
+  auth_service.TokenPair:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+    type: object
+  auth_transport_http.LoginRequest:
+    properties:
+      email:
+        maxLength: 255
+        type: string
+      password:
+        maxLength: 72
+        minLength: 8
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  auth_transport_http.LogoutRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  auth_transport_http.RefreshRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  auth_transport_http.RegisterRequest:
+    properties:
+      email:
+        maxLength: 255
+        type: string
+      password:
+        maxLength: 72
+        minLength: 8
+        type: string
+      username:
+        maxLength: 64
+        minLength: 3
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
+  auth_transport_http.UserResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+  core_http_response.ErrorBody:
+    properties:
+      error:
+        example: bad request
+        type: string
+      message:
+        example: invalid request body
+        type: string
+    type: object
+  polls_transport_http.CreatePollRequest:
+    properties:
+      options:
+        items:
+          type: string
+        maxItems: 10
+        minItems: 2
+        type: array
+      question:
+        maxLength: 500
+        minLength: 1
+        type: string
+    required:
+    - options
+    - question
+    type: object
+  polls_transport_http.PollOptionResponse:
+    properties:
+      id:
+        type: integer
+      text:
+        type: string
+      votes:
+        type: integer
+    type: object
+  polls_transport_http.PollResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      options:
+        items:
+          $ref: '#/definitions/polls_transport_http.PollOptionResponse'
+        type: array
+      post_id:
+        type: integer
+      question:
+        type: string
+    type: object
+  polls_transport_http.VoteRequest:
+    properties:
+      option_id:
+        type: integer
+    required:
+    - option_id
+    type: object
+  posts_transport_http.CreatePostRequest:
+    properties:
+      anonymous:
+        type: boolean
+      content:
+        maxLength: 5000
+        minLength: 1
+        type: string
+    required:
+    - content
+    type: object
+  posts_transport_http.PostResponse:
+    properties:
+      anonymous:
+        type: boolean
+      author:
+        type: string
+      author_id:
+        type: integer
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      poll:
+        $ref: '#/definitions/polls_transport_http.PollResponse'
+      updated_at:
+        type: string
+    type: object
+  posts_transport_http.UpdatePostRequest:
+    properties:
+      anonymous:
+        type: boolean
+      content:
+        maxLength: 5000
+        minLength: 1
+        type: string
+    required:
+    - content
+    type: object
+host: localhost:5050
+info:
+  contact: {}
+  description: 'Anonymous message board REST API: auth, posts, polls. Real-time notifications
+    are delivered via a separate WebSocket service.'
+  title: Murmur API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Exchanges email and password for an access/refresh token pair.
+      parameters:
+      - description: Credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth_transport_http.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth_service.TokenPair'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "401":
+          description: Invalid email or password
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+      summary: Log in
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Invalidates the given refresh token.
+      parameters:
+      - description: Refresh token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth_transport_http.LogoutRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+      summary: Log out
+      tags:
+      - auth
+  /auth/me:
+    get:
+      description: Returns the profile of the authenticated user.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth_transport_http.UserResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Current user
+      tags:
+      - auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Exchanges a valid refresh token for a new access/refresh token
+        pair.
+      parameters:
+      - description: Refresh token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth_transport_http.RefreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/auth_service.TokenPair'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "401":
+          description: Invalid or expired token
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+      summary: Refresh tokens
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Creates an account and returns an access/refresh token pair.
+      parameters:
+      - description: Registration data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth_transport_http.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/auth_service.TokenPair'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "409":
+          description: User already exists
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+      summary: Register a new user
+      tags:
+      - auth
+  /polls/{id}/vote:
+    post:
+      consumes:
+      - application/json
+      description: Casts the authenticated user's vote for the given option. One vote
+        per user per poll.
+      parameters:
+      - description: Poll ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Chosen option
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/polls_transport_http.VoteRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "409":
+          description: Already voted
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Vote in a poll
+      tags:
+      - polls
+  /posts:
+    get:
+      description: Returns posts with pagination. Public endpoint.
+      parameters:
+      - default: 20
+        description: Page size
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/posts_transport_http.PostResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+      summary: List posts
+      tags:
+      - posts
+    post:
+      consumes:
+      - application/json
+      description: Creates a post on behalf of the authenticated user. If anonymous
+        is true, the author is hidden in responses.
+      parameters:
+      - description: Post data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/posts_transport_http.CreatePostRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/posts_transport_http.PostResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "429":
+          description: Rate limit exceeded
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Create a post
+      tags:
+      - posts
+  /posts/{id}:
+    delete:
+      description: Deletes a post. Only the author can do this.
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "403":
+          description: Not the author
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Delete a post
+      tags:
+      - posts
+    get:
+      description: Returns a single post by ID, including its poll if present. Public
+        endpoint.
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/posts_transport_http.PostResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+      summary: Get a post
+      tags:
+      - posts
+    put:
+      consumes:
+      - application/json
+      description: Updates a post. Only the author can do this.
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: New post data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/posts_transport_http.UpdatePostRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/posts_transport_http.PostResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "403":
+          description: Not the author
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Update a post
+      tags:
+      - posts
+  /posts/{id}/poll:
+    post:
+      consumes:
+      - application/json
+      description: Attaches a poll (2–10 options) to an existing post.
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Poll data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/polls_transport_http.CreatePollRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/polls_transport_http.PollResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "409":
+          description: Post already has a poll
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/core_http_response.ErrorBody'
+      security:
+      - BearerAuth: []
+      summary: Create a poll for a post
+      tags:
+      - polls
+securityDefinitions:
+  BearerAuth:
+    description: 'Format: "Bearer {access_token}"'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

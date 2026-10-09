@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package board;
+
+option go_package = "github.com/oleg-morshel/murmur-api/proto/boardpb";
+
+service UserService {
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+}
+
+message GetUserRequest {
+  int64 id = 1;
+}
+
+message GetUserResponse {
+  int64  id       = 1;
+  string username = 2;
+  string bio      = 3;
+}
