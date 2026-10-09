@@ -1,5 +1,5 @@
 # Murmur API
-[![CI](https://github.com/oleg-morshel/murmur-api/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/oleg-morshel/murmur-api/actions/workflows/ci.yml)
+[![CI](https://github.com/oleg-morshel/murmur-api/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/oleg-morshel/murmur-api/actions/workflows/ci.yml)
 
 An anonymous message board backend written in Go. Users register, publish posts (optionally anonymous), attach polls and vote. Other clients get real-time notifications over WebSocket.
 
